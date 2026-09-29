@@ -216,7 +216,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 </div>
 <script>
 'use strict';
-const VERSION='1.4';
+const VERSION='1.5';
 const STORE_KEY='sra_v1';
 const WHITE_PC=[0,2,4,5,7,9,11];
 const LETTER={0:0,2:1,4:2,5:3,7:4,9:5,11:6};
@@ -388,7 +388,10 @@ function buildKeyboard(){
   const kb=$('kb'),wrap=$('kbwrap');kb.innerHTML='';
   const [lo,hi]=kbRangeFor();kb.dataset.lo=lo;kb.dataset.hi=hi;
   const whites=poolOf(lo,hi);
-  const cw=wrap.clientWidth-24,wW=Math.min(72,Math.max(30,Math.floor(cw/whites.length)));
+  const cs=getComputedStyle(wrap),cw=wrap.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  // 横屏：键盘铺满整个宽度；竖屏：单键最宽 72px 并居中
+  const landscape=matchMedia('(orientation: landscape)').matches;
+  const wW=landscape?Math.max(30,cw/whites.length):Math.min(72,Math.max(30,Math.floor(cw/whites.length)));
   kb.style.width=(wW*whites.length)+'px';kb.dataset.ww=wW;kb.style.margin='0 auto';
   const idx={};
   whites.forEach((m,i)=>{idx[m]=i;const d=document.createElement('div');d.className='key white';d.dataset.m=m;d.dataset.pc=m%12;
