@@ -81,13 +81,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 .key .mc{position:absolute;bottom:22px;left:50%;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:#c9a227}
 #kb.showlab .key .mc{bottom:26px}
 #kb.blind .key .mc{display:none}
-#kb.color .key.white[data-pc="0"]{background:#f7a09a}
-#kb.color .key.white[data-pc="2"]{background:#f9c48a}
-#kb.color .key.white[data-pc="4"]{background:#f7e79a}
-#kb.color .key.white[data-pc="5"]{background:#b6e8a6}
-#kb.color .key.white[data-pc="7"]{background:#9adcd0}
-#kb.color .key.white[data-pc="9"]{background:#a9bff5}
-#kb.color .key.white[data-pc="11"]{background:#d8b0f0}
+#kb .key.target{background:#ffd166 !important;box-shadow:inset 0 0 0 2px #e0a800}
 .stage .nn{font-size:13px;font-weight:700;fill:#444}
 .key.down{filter:brightness(.85)}
 .key.right{background:#8be3b8 !important}
@@ -203,7 +197,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 </div>
 <script>
 'use strict';
-const VERSION='1.1';
+const VERSION='1.2';
 const STORE_KEY='sra_v1';
 const WHITE_PC=[0,2,4,5,7,9,11];
 const LETTER={0:0,2:1,4:2,5:3,7:4,9:5,11:6};
@@ -228,7 +222,6 @@ const LEVELS=[
 const MAX_PLAYABLE=7;
 const DEFAULT={version:1,maxLevel:1,currentLevel:1,cleared:{},rounds:[],notes:{},answers:[],
   daily:{date:'',bestCombo:0,trebleStreak:0,trebleBest:0,fast:0,perfect:false},settings:{sound:true,blind:false,noteName:false,colorKeys:false}};
-const PC_COLOR={0:'#d9453a',2:'#e0852a',4:'#c9a800',5:'#3f9d3a',7:'#1f9a8a',9:'#3b63c9',11:'#8e3fbf'};
 
 /* ---------- 工具 ---------- */
 const $=id=>document.getElementById(id);
@@ -309,14 +302,17 @@ function renderStaff(mode,clef,midi){
   let g='';
   if(o<=-2)for(let k=-2;k>=o;k-=2)g+=`<line x1="${x-rx-SP*.45}" y1="${bottom-k*SP/2}" x2="${x+rx+SP*.45}" y2="${bottom-k*SP/2}" class="sl"/>`;
   if(o>=10)for(let k=10;k<=o;k+=2)g+=`<line x1="${x-rx-SP*.45}" y1="${bottom-k*SP/2}" x2="${x+rx+SP*.45}" y2="${bottom-k*SP/2}" class="sl"/>`;
-  const fill=S.settings.colorKeys?` style="fill:${PC_COLOR[midi%12]}"`:'';
-  g+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(-22 ${x} ${y})" class="nh"${fill}/>`;
+  g+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(-22 ${x} ${y})" class="nh"/>`;
   if(S.settings.noteName)g+=`<text x="${x+rx+6}" y="${y-ry-3}" class="nn">${noteName(midi)}</text>`;
   if(o>=4)g+=`<line x1="${x-rx+1}" y1="${y+1}" x2="${x-rx+1}" y2="${y+3.4*SP}" class="stem"/>`;
   else g+=`<line x1="${x+rx-1}" y1="${y-1}" x2="${x+rx-1}" y2="${y-3.4*SP}" class="stem"/>`;
   p.push(`<g id="noteG" transform="translate(230,0)" opacity="0.3">${g}</g>`);
   svg.innerHTML=p.join('');
   slideIn($('noteG'));
+}
+function markTarget(){
+  document.querySelectorAll('.key.target').forEach(k=>k.classList.remove('target'));
+  if(S.settings.colorKeys&&G&&G.q){const k=keyEl(G.q.midi);if(k)k.classList.add('target');}
 }
 function redrawCurrent(){renderStaff(G.L.clef,G.q.clef,G.q.midi);const g=$('noteG');g.setAttribute('transform','translate(0,0)');g.setAttribute('opacity',1);}
 function slideIn(el){
@@ -370,7 +366,7 @@ function startRound(lv,mode='normal',bossNotes=null){
 }
 function applyKbFlags(){
   const kb=$('kb');kb.classList.toggle('showlab',!!(G&&G.hint));kb.classList.toggle('blind',!!(S.settings.blind&&G&&G.lv>=7));
-  kb.classList.toggle('color',!!S.settings.colorKeys);
+  markTarget();
   $('chipHint').classList.toggle('on',!!(G&&G.hint));$('chipBlind').classList.toggle('on',!!S.settings.blind);
   $('chipNote').classList.toggle('on',!!S.settings.noteName);$('chipColor').classList.toggle('on',!!S.settings.colorKeys);
   $('chipSound').textContent=S.settings.sound?'🔊':'🔇';
@@ -406,7 +402,7 @@ function nextQuestion(){
   const q=G.mode==='boss'?pickBoss():pickNormal();
   if(!q)return endRound();
   G.q=q;G.last=q.midi;
-  renderStaff(G.L.clef,q.clef,q.midi);
+  renderStaff(G.L.clef,q.clef,q.midi);markTarget();
   G.tStart=performance.now();G.locked=false;updateHud();
 }
 function pointsFor(t,hint){if(hint)return{p:50,tag:'💡 +50（提示模式无速度奖励）'};if(t<=1.2)return{p:150,tag:'⚡ +150'};if(t<=3.0)return{p:100,tag:'+100 ✓'};return{p:50,tag:'+50 ✓ 再快一点'};}
@@ -554,7 +550,7 @@ $('btnReset').onclick=()=>{if(confirm('确定清空全部进度、统计与错�
 {localStorage.removeItem(STORE_KEY);S=load();renderHome();}};
 $('chipHint').onclick=()=>{if(!G)return;G.hint=!G.hint;applyKbFlags();};
 $('chipNote').onclick=()=>{S.settings.noteName=!S.settings.noteName;save();applyKbFlags();if(G&&G.q)redrawCurrent();};
-$('chipColor').onclick=()=>{S.settings.colorKeys=!S.settings.colorKeys;save();applyKbFlags();if(G&&G.q)redrawCurrent();};
+$('chipColor').onclick=()=>{S.settings.colorKeys=!S.settings.colorKeys;save();applyKbFlags();};
 $('chipBlind').onclick=()=>{S.settings.blind=!S.settings.blind;save();applyKbFlags();};
 $('chipSound').onclick=()=>{S.settings.sound=!S.settings.sound;save();applyKbFlags();if(S.settings.sound)unlockAudio();else if(silentEl)silentEl.pause();};
 $('chipExit').onclick=()=>{if(G&&G.times.length&&!confirm('退出本局？本局成绩不会计入晋级。'))return;G=null;showScreen('home');renderHome();};
