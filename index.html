@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Sight Reading Adventure · 识谱冒险</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Music&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1420;--bg2:#161d2e;--card:#1c2538;--line:#2b3650;--text:#e9edf5;--mut:#8d98b3;
+  --acc:#f4b942;--acc2:#ff7a59;--ok:#3ddc97;--bad:#ff5c6c;--info:#5aa9ff;
+  --paper:#fbf8f0;--ink:#1b1b1b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang SC","Helvetica Neue","Segoe UI","Microsoft YaHei",sans-serif;overscroll-behavior:none}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 18px;background:var(--card);color:var(--text)}
+button.primary{background:var(--acc);color:#1a1200;font-weight:700}
+button.warn{background:var(--acc2);color:#fff;font-weight:700}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--mut)}
+button:active{transform:scale(.97)}
+.screen{display:none;flex-direction:column;min-height:100dvh}
+.screen.active{display:flex}
+.wrap{width:100%;max-width:760px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:26px;margin:8px 0 2px}
+h2{font-size:18px;margin:22px 0 10px;color:var(--mut);font-weight:600}
+.sub{color:var(--mut);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.stat{flex:1 1 140px;background:var(--bg2);border-radius:12px;padding:12px}
+.stat .k{color:var(--mut);font-size:12px}
+.stat .v{font-size:22px;font-weight:700;margin-top:4px}
+.stars{font-size:20px;letter-spacing:2px;word-break:break-all}
+.bar{height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));width:0}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btns button{flex:1 1 160px;font-size:16px;padding:14px}
+.task{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.task:last-child{border:0}
+.task.done{color:var(--ok)}
+.lv{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:var(--bg2);margin:8px 0;cursor:pointer;border:1px solid transparent}
+.lv.cur{border-color:var(--acc)}
+.lv.lock{opacity:.45;cursor:not-allowed}
+.lv .num{width:38px;height:38px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.lv .t{font-weight:600}
+.lv .d{font-size:12px;color:var(--mut)}
+.lv .st{margin-left:auto;font-size:13px;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:500;font-size:12px}
+.rate{color:var(--bad);font-weight:700}
+/* game */
+#game{height:100dvh;min-height:0}
+.hud{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--line);font-size:14px;flex-wrap:wrap}
+.hud .lvname{font-weight:700}
+.hud .sp{flex:1}
+.hud .chip{padding:6px 10px;border-radius:999px;background:var(--card);font-size:13px;cursor:pointer;border:1px solid var(--line);user-select:none}
+.hud .chip.on{background:var(--acc);color:#1a1200;border-color:var(--acc)}
+.hud .score{font-weight:700;color:var(--acc)}
+.hud .combo{font-weight:700}
+.hud .combo.hot{color:var(--acc2)}
+.stage{flex:2 1 0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background:var(--paper);margin:10px 12px 6px;border-radius:16px;overflow:hidden}
+.stage svg{width:100%;height:100%;display:block}
+.stage .sl{stroke:#333;stroke-width:1.2}
+.stage .nh{fill:var(--ink)}
+.stage .stem{stroke:var(--ink);stroke-width:1.6}
+.stage .clef{font-family:"Noto Music","Bravura","Segoe UI Symbol","Apple Symbols",serif;fill:var(--ink)}
+.stage .brace{fill:none;stroke:#333;stroke-width:2.2}
+.stage .lbl{font-size:13px;fill:#777}
+.fb{position:absolute;left:0;right:0;top:10px;text-align:center;font-weight:800;font-size:26px;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;transform:translateY(6px)}
+.fb.show{opacity:1;transform:translateY(0)}
+.fb.ok{color:#1e9e63}.fb.bad{color:#d33}
+.prog{position:absolute;left:12px;bottom:8px;font-size:12px;color:#888}
+.kbwrap{flex:1 1 0;min-height:130px;max-height:260px;overflow-x:auto;overflow-y:hidden;padding:0 12px 12px;touch-action:pan-x}
+#kb{position:relative;height:100%;min-height:118px;user-select:none}
+.key{position:absolute;top:0;border-radius:0 0 6px 6px;cursor:pointer}
+.key.white{height:100%;background:#f7f5ef;border:1px solid #bbb;z-index:1}
+.key.black{height:60%;background:#23262e;border:1px solid #000;z-index:2;border-radius:0 0 4px 4px}
+.key.white .lab{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:11px;color:#555;display:none}
+#kb.showlab .key.white .lab{display:block}
+.key .mc{position:absolute;bottom:22px;left:50%;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:#c9a227}
+#kb.showlab .key .mc{bottom:26px}
+#kb.blind .key .mc{display:none}
+.key.down{filter:brightness(.85)}
+.key.right{background:#8be3b8 !important}
+.key.wrong{background:#ff8a94 !important}
+.key.hintflash{animation:hint .5s ease-in-out 2}
+@keyframes hint{50%{background:#ffe9a8}}
+.kbtip{font-size:11px;color:var(--mut);text-align:center;padding:0 0 6px}
+.big{font-size:40px;font-weight:800;text-align:center;margin:10px 0}
+.center{text-align:center}
+.tag{display:inline-block;padding:3px 8px;border-radius:8px;background:var(--bg2);font-size:13px;margin:3px}
+.tag.bad{color:var(--bad)}
+.levelup{background:linear-gradient(135deg,#3b2a00,#5a3a00);border-color:var(--acc)}
+.spark{width:100%;height:44px}
+.topbar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.topbar button{padding:8px 12px}
+@media (max-width:600px){h1{font-size:22px}.big{font-size:32px}.stage{margin:8px 8px 4px;flex:1.15 1 0}.kbwrap{padding:0 8px 8px;max-height:240px}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- 主页 -->
+<section id="home" class="screen"><div class="wrap">
+  <h1>🎼 Sight Reading Adventure</h1>
+  <div class="sub">识谱冒险 · 看到音符，手直接找到琴键</div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><div class="sub">当前</div><div style="font-size:26px;font-weight:800">LEVEL <span id="hLv">1</span> <span id="hLvName" style="font-size:15px;font-weight:500;color:var(--mut)"></span></div></div>
+      <div class="stars" id="hStars"></div>
+    </div>
+    <div class="sub" style="margin-top:8px">本级熟练度 <b id="hProf">0%</b> · <span id="hProfDetail"></span></div>
+    <div class="bar"><i id="hBar"></i></div>
+    <div class="btns">
+      <button class="primary" id="btnStart">▶ 开始训练</button>
+      <button id="btnLevels">🗺 选择关卡</button>
+      <button id="btnBook">📕 错题本 <span id="hBook">0</span></button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="k">今日最佳连击</div><div class="v" id="hCombo">0 🔥</div></div>
+    <div class="stat"><div class="k">🧠 平均识谱速度</div><div class="v" id="hSpeed">—</div></div>
+    <div class="stat"><div class="k">容易认错</div><div class="v" id="hWeak" style="font-size:16px">—</div></div>
+  </div>
+  <div class="card">
+    <div class="sub">识谱速度趋势（最近 12 局，秒/音）<span id="hSparkLast" style="float:right"></span></div>
+    <svg class="spark" id="hSpark" viewBox="0 0 300 44" preserveAspectRatio="none"></svg>
+  </div>
+  <div class="card">
+    <div class="sub">🎯 今日任务</div>
+    <div id="hTasks"></div>
+  </div>
+  <div class="card">
+    <div class="sub">玩法：每局 20 题。看五线谱上的音符，点击下方钢琴对应的键。答对越快分数越高（≤1.2 s ⚡150 / ≤3 s 100 / 更慢 50），连击 5 / 10 / 20 有额外奖励。
+      每级晋级条件：最近 10 局共 200 题正确率 ≥ 98%，且平均反应时间达到本级要求。答错的音符进入错题本，局末进行「错题复仇」，连续答对 3 次才能消掉。</div>
+    <div class="btns"><button class="ghost" id="btnReset">重置全部进度</button></div>
+  </div>
+</div></section>
+
+<!-- 关卡 -->
+<section id="levels" class="screen"><div class="wrap">
+  <div class="topbar"><button class="ghost" data-go="home">← 返回</button><h1 style="margin:0">🗺 关卡</h1></div>
+  <div id="lvList"></div>
+</div></section>
+
+<!-- 错题本 -->
+<section id="book" class="screen"><div class="wrap">
+  <div class="topbar"><button class="ghost" data-go="home">← 返回</button><h1 style="margin:0">📕 错题本 · 薄弱音符库</h1></div>
+  <div class="sub">长期统计。错误率高的音符及其相邻音，会在正常训练中自动提高出现频率。</div>
+  <div class="card" id="bookBody"></div>
+  <div class="btns"><button class="warn" id="btnWeakTrain">🎯 薄弱音强化训练</button></div>
+</div></section>
+
+<!-- 游戏 -->
+<section id="game" class="screen">
+  <div class="hud">
+    <span class="lvname" id="gLv"></span>
+    <span id="gQ" class="sub"></span>
+    <span class="sp"></span>
+    <span class="score">🏆 <span id="gScore">0</span></span>
+    <span class="combo" id="gCombo">Combo ×0</span>
+    <span class="chip" id="chipHint">💡 键名</span>
+    <span class="chip" id="chipBlind" style="display:none">👀 Blind</span>
+    <span class="chip" id="chipSound">🔊</span>
+    <span class="chip" id="chipExit">✕</span>
+  </div>
+  <div class="stage">
+    <svg id="staff" viewBox="0 0 600 320" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="fb" id="fb"></div>
+    <div class="prog" id="gMode"></div>
+  </div>
+  <div class="kbtip" id="kbtip">键盘可左右滑动 · 金点为中央 C</div>
+  <div class="kbwrap" id="kbwrap"><div id="kb"></div></div>
+</section>
+
+<!-- 结算 -->
+<section id="summary" class="screen"><div class="wrap">
+  <h1 id="sTitle">本局结算</h1>
+  <div id="sLevelUp"></div>
+  <div class="big" id="sScore">0</div>
+  <div class="row">
+    <div class="stat"><div class="k">正确</div><div class="v" id="sAcc"></div></div>
+    <div class="stat"><div class="k">平均反应</div><div class="v" id="sTime"></div></div>
+    <div class="stat"><div class="k">最高连击</div><div class="v" id="sCombo"></div></div>
+  </div>
+  <div class="card" id="sProg"></div>
+  <div class="card" id="sWrong"></div>
+  <div class="btns" id="sBtns"></div>
+</div></section>
+
+</div>
+<script>
+'use strict';
+const STORE_KEY='sra_v1';
+const WHITE_PC=[0,2,4,5,7,9,11];
+const LETTER={0:0,2:1,4:2,5:3,7:4,9:5,11:6};
+const NAMES=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const KB_LO=36,KB_HI=84; // C2–C6
+const QUESTIONS=20;
+const SP=14; // 谱线间距（viewBox 单位）
+const LEVELS=[
+ {n:1,name:'中央C附近入门',clef:'treble',range:[60,67],time:3.0,mech:'5 个音，认识位置',rng:'C4–G4'},
+ {n:2,name:'高音谱表基础',clef:'treble',range:[60,72],time:3.0,mech:'8 个白键',rng:'C4–C5'},
+ {n:3,name:'高音谱表扩展',clef:'treble',range:[60,79],time:2.5,mech:'扩展音域，默认关闭键名',rng:'C4–G5'},
+ {n:4,name:'高音谱表完整',clef:'treble',range:[57,84],time:2.5,mech:'上下加线',rng:'A3–C6'},
+ {n:5,name:'低音谱表入门',clef:'bass',range:[41,60],time:2.5,mech:'切换低音谱号',rng:'F2–C4'},
+ {n:6,name:'低音谱表完整',clef:'bass',range:[36,64],time:2.5,mech:'加线',rng:'C2–E4'},
+ {n:7,name:'大谱表',clef:'grand',ranges:{treble:[57,84],bass:[36,64]},time:2.0,mech:'高低音谱表随机，可开 Blind Mode',rng:'C2–C6'},
+ {n:8,name:'升降号',locked:true,mech:'♯ ♭ ♮ + 黑键',rng:'C2–C6'},
+ {n:9,name:'调号',locked:true,mech:'G / F / D / B♭ 等常用调',rng:'常用调'},
+ {n:10,name:'快速识谱',locked:true,mech:'限时、连击',rng:'C2–C6'},
+ {n:11,name:'双音 / 和弦',locked:true,mech:'同时按 2–3 键',rng:'三度、五度、三和弦'},
+ {n:12,name:'钢琴实战',locked:true,mech:'调号 + 临时记号 + 和弦 + 速度',rng:'大谱表综合'},
+];
+const MAX_PLAYABLE=7;
+const DEFAULT={version:1,maxLevel:1,currentLevel:1,cleared:{},rounds:[],notes:{},answers:[],
+  daily:{date:'',bestCombo:0,trebleStreak:0,trebleBest:0,fast:0,perfect:false},settings:{sound:true,blind:false}};
+
+/* ---------- 工具 ---------- */
+const $=id=>document.getElementById(id);
+const noteName=m=>NAMES[m%12]+(Math.floor(m/12)-1);
+const isWhite=m=>WHITE_PC.includes(m%12);
+const stepOf=m=>(Math.floor(m/12)-1)*7+LETTER[m%12];
+const poolOf=(lo,hi)=>{const a=[];for(let m=lo;m<=hi;m++)if(isWhite(m))a.push(m);return a;};
+const pad=n=>String(n).padStart(2,'0');
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+const fmtT=t=>t?t.toFixed(2)+' s':'—';
+function levelPools(L){return L.clef==='grand'?{treble:poolOf(...L.ranges.treble),bass:poolOf(...L.ranges.bass)}:{[L.clef]:poolOf(...L.range)};}
+
+/* ---------- 存档 ---------- */
+let S=load();
+function load(){
+  let j=null;try{j=JSON.parse(localStorage.getItem(STORE_KEY));}catch(e){}
+  const s=JSON.parse(JSON.stringify(DEFAULT));
+  if(j&&j.version===1){Object.assign(s,j);s.daily=Object.assign({},DEFAULT.daily,j.daily||{});s.settings=Object.assign({},DEFAULT.settings,j.settings||{});}
+  return s;
+}
+function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(S));}catch(e){}}
+function ensureDaily(){if(S.daily.date!==today()){S.daily={date:today(),bestCombo:0,trebleStreak:0,trebleBest:0,fast:0,perfect:false};save();}}
+function noteStat(m){return S.notes[m]||(S.notes[m]={a:0,e:0,t:0});}
+function errRate(m){const n=S.notes[m];return n&&n.a>=3?n.e/n.a:0;}
+
+/* ---------- 音频 ---------- */
+let AC=null;
+function ensureAudio(){
+  if(!S.settings.sound)return null;
+  if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
+  if(AC.state==='suspended')AC.resume();
+  return AC;
+}
+function playNote(m,dur=1.2){
+  const ac=ensureAudio();if(!ac)return;
+  const f=440*Math.pow(2,(m-69)/12),t=ac.currentTime;
+  const g=ac.createGain();g.connect(ac.destination);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.45,t+0.006);g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+  [[1,1,'triangle'],[2,0.3,'sine'],[3,0.12,'sine'],[4,0.06,'sine']].forEach(([h,a,type])=>{
+    const o=ac.createOscillator();o.type=type;o.frequency.value=f*h;
+    const og=ac.createGain();og.gain.value=a;o.connect(og);og.connect(g);o.start(t);o.stop(t+dur+0.05);
+  });
+}
+
+/* iOS 解锁：静音拨杆下 Web Audio 会被静掉，播放一个循环的静音 <audio> 可把会话切到媒体播放类别；
+   同时在 touchend / click 手势里创建并 resume AudioContext */
+const SILENT_WAV='data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
+let silentEl=null;
+function unlockAudio(){
+  if(!S.settings.sound)return;
+  if(!silentEl){silentEl=document.createElement('audio');silentEl.setAttribute('playsinline','');silentEl.loop=true;silentEl.volume=0.01;silentEl.src=SILENT_WAV;}
+  if(silentEl.paused){const p=silentEl.play();if(p&&p.catch)p.catch(()=>{});}
+  ensureAudio();
+}
+['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockAudio,{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(silentEl){if(document.hidden)silentEl.pause();else if(S.settings.sound){const p=silentEl.play();if(p&&p.catch)p.catch(()=>{});}}});
+
+/* ---------- 五线谱 ---------- */
+function renderStaff(mode,clef,midi){
+  const svg=$('staff'),narrow=window.innerWidth<600,W=narrow?440:600,NX=narrow?330:400;
+  svg.setAttribute('viewBox',mode==='grand'?`0 30 ${W} 260`:`0 70 ${W} 190`);
+  const staves=mode==='grand'?[{clef:'treble',top:70},{clef:'bass',top:190}]:[{clef:mode,top:130}];
+  const p=[];
+  staves.forEach(st=>{
+    for(let i=0;i<5;i++){const y=st.top+i*SP;p.push(`<line x1="26" y1="${y}" x2="${W-20}" y2="${y}" class="sl"/>`);}
+    const bottom=st.top+4*SP;
+    if(st.clef==='treble')p.push(`<text x="34" y="${bottom-SP}" class="clef" font-size="${4*SP}">𝄞</text>`);
+    else p.push(`<text x="34" y="${st.top+SP}" class="clef" font-size="${4*SP}">𝄢</text>`);
+  });
+  if(mode==='grand'){
+    const y1=70,y2=190+4*SP,ym=(y1+y2)/2;
+    p.push(`<line x1="26" y1="${y1}" x2="26" y2="${y2}" class="sl"/>`);
+    p.push(`<path class="brace" d="M22 ${y1} C 10 ${y1+20}, 20 ${ym-14}, 10 ${ym} C 20 ${ym+14}, 10 ${y2-20}, 22 ${y2}"/>`);
+  }
+  const st=staves.find(s=>s.clef===clef),bottom=st.top+4*SP;
+  const base=clef==='treble'?30:18; // E4 / G2 为最底线
+  const o=stepOf(midi)-base,y=bottom-o*SP/2,x=NX,rx=SP*0.62,ry=SP*0.44;
+  let g='';
+  if(o<=-2)for(let k=-2;k>=o;k-=2)g+=`<line x1="${x-rx-SP*.45}" y1="${bottom-k*SP/2}" x2="${x+rx+SP*.45}" y2="${bottom-k*SP/2}" class="sl"/>`;
+  if(o>=10)for(let k=10;k<=o;k+=2)g+=`<line x1="${x-rx-SP*.45}" y1="${bottom-k*SP/2}" x2="${x+rx+SP*.45}" y2="${bottom-k*SP/2}" class="sl"/>`;
+  g+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(-22 ${x} ${y})" class="nh"/>`;
+  if(o>=4)g+=`<line x1="${x-rx+1}" y1="${y+1}" x2="${x-rx+1}" y2="${y+3.4*SP}" class="stem"/>`;
+  else g+=`<line x1="${x+rx-1}" y1="${y-1}" x2="${x+rx-1}" y2="${y-3.4*SP}" class="stem"/>`;
+  p.push(`<g id="noteG" transform="translate(230,0)" opacity="0.3">${g}</g>`);
+  svg.innerHTML=p.join('');
+  slideIn($('noteG'));
+}
+function slideIn(el){
+  const t0=performance.now(),D=220;
+  (function f(t){const q=Math.min(1,(t-t0)/D),e=1-Math.pow(1-q,3);
+    el.setAttribute('transform',`translate(${(1-e)*230},0)`);el.setAttribute('opacity',0.3+0.7*e);
+    if(q<1)requestAnimationFrame(f);})(t0);
+}
+
+/* ---------- 键盘 ---------- */
+function buildKeyboard(){
+  const kb=$('kb'),wrap=$('kbwrap');kb.innerHTML='';
+  const whites=poolOf(KB_LO,KB_HI);
+  const cw=wrap.clientWidth-24,wW=Math.max(30,Math.floor(cw/whites.length));
+  kb.style.width=(wW*whites.length)+'px';kb.dataset.ww=wW;
+  const idx={};
+  whites.forEach((m,i)=>{idx[m]=i;const d=document.createElement('div');d.className='key white';d.dataset.m=m;
+    d.style.left=(i*wW)+'px';d.style.width=(wW-1)+'px';
+    d.innerHTML=`<span class="lab">${noteName(m)}</span>${m===60?'<span class="mc"></span>':''}`;kb.appendChild(d);});
+  const bW=Math.round(wW*0.6);
+  for(let m=KB_LO;m<=KB_HI;m++)if(!isWhite(m)){const d=document.createElement('div');d.className='key black';d.dataset.m=m;
+    d.style.left=((idx[m-1]+1)*wW-bW/2)+'px';d.style.width=bW+'px';kb.appendChild(d);}
+  kb.onpointerdown=e=>{const k=e.target.closest('.key');if(!k)return;e.preventDefault();k.classList.add('down');setTimeout(()=>k.classList.remove('down'),120);pressKey(+k.dataset.m,k);};
+}
+function keyEl(m){return document.querySelector(`.key[data-m="${m}"]`);}
+function scrollKeyboardTo(lo,hi){
+  const wrap=$('kbwrap'),wW=+$('kb').dataset.ww||30;
+  const whites=poolOf(KB_LO,KB_HI);const i1=whites.filter(m=>m<lo).length,i2=whites.filter(m=>m<=hi).length;
+  const center=(i1+i2)/2*wW;wrap.scrollLeft=Math.max(0,center-wrap.clientWidth/2);
+}
+let resizeTimer=null;
+window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if($('game').classList.contains('active')){buildKeyboard();applyKbFlags();}},150);});
+
+/* ---------- 游戏状态 ---------- */
+let G=null;
+function levelRangeAll(L){const ps=levelPools(L);const all=[].concat(...Object.values(ps));return [Math.min(...all),Math.max(...all)];}
+function startRound(lv,mode='normal',bossNotes=null){
+  ensureDaily();
+  const L=LEVELS[lv-1];
+  G={lv,L,mode,pools:levelPools(L),qIndex:0,total:QUESTIONS,score:0,combo:0,maxCombo:0,correct:0,times:[],wrong:[],
+     hint:lv<=2,locked:false,last:null,q:null,tStart:0,
+     boss:mode==='boss'?{targets:{},sinceRandom:0,count:0,max:40}:null};
+  if(G.boss)bossNotes.forEach(m=>G.boss.targets[m]={streak:0,done:false});
+  $('gLv').textContent=`Lv${lv} ${L.name}`;
+  $('gMode').textContent=mode==='boss'?'🎯 Boss Battle · 错题复仇：每个错音连续答对 3 次':`本级要求：正确率 ≥ 98%，平均反应 ≤ ${L.time.toFixed(1)} s`;
+  $('chipBlind').style.display=lv>=7?'':'none';
+  showScreen('game');
+  buildKeyboard();applyKbFlags();
+  const [lo,hi]=levelRangeAll(L);scrollKeyboardTo(lo,hi);
+  updateHud();nextQuestion();
+}
+function applyKbFlags(){
+  const kb=$('kb');kb.classList.toggle('showlab',!!(G&&G.hint));kb.classList.toggle('blind',!!(S.settings.blind&&G&&G.lv>=7));
+  $('chipHint').classList.toggle('on',!!(G&&G.hint));$('chipBlind').classList.toggle('on',!!S.settings.blind);
+  $('chipSound').textContent=S.settings.sound?'🔊':'🔇';
+  $('kbtip').textContent=(S.settings.blind&&G&&G.lv>=7)?'Blind Mode：无中央 C 提示':'键盘可左右滑动 · 金点为中央 C';
+}
+function updateHud(){
+  $('gScore').textContent=G.score;
+  const c=$('gCombo');c.textContent=`Combo ×${G.combo}`+(G.combo>=20?' ⚡':G.combo>=10?' 🔥🔥':G.combo>=5?' 🔥':'');c.classList.toggle('hot',G.combo>=5);
+  $('gQ').textContent=G.mode==='boss'?`第 ${G.boss.count+1} 题 · 剩余 ${Object.values(G.boss.targets).filter(t=>!t.done).length} 个错音`:`${G.qIndex+1} / ${G.total}`;
+}
+function weightOf(m,pool){let w=1+3*errRate(m);const i=pool.indexOf(m);if(i>0)w+=1.5*errRate(pool[i-1]);if(i<pool.length-1)w+=1.5*errRate(pool[i+1]);return w;}
+function pickWeighted(pool,avoid){
+  const cand=pool.length>1?pool.filter(m=>m!==avoid):pool;const ws=cand.map(m=>weightOf(m,pool));
+  let r=Math.random()*ws.reduce((a,b)=>a+b,0);for(let i=0;i<cand.length;i++){r-=ws[i];if(r<=0)return cand[i];}return cand[cand.length-1];
+}
+function clefFor(m){const ks=Object.keys(G.pools);if(ks.length===1)return ks[0];const inT=G.pools.treble.includes(m),inB=G.pools.bass.includes(m);if(inT&&inB)return Math.random()<0.5?'treble':'bass';return inT?'treble':'bass';}
+function pickNormal(){
+  const ks=Object.keys(G.pools),clef=ks[Math.floor(Math.random()*ks.length)];
+  return {midi:pickWeighted(G.pools[clef],G.last),clef};
+}
+function pickBoss(){
+  const B=G.boss,remain=Object.keys(B.targets).filter(m=>!B.targets[m].done).map(Number);
+  if(!remain.length||B.count>=B.max)return null;
+  const allPool=[].concat(...Object.values(G.pools));
+  if(B.sinceRandom>=2&&Math.random()<0.5){B.sinceRandom=0;const others=allPool.filter(m=>!(m in B.targets));if(others.length){const m=pickWeighted(others,G.last);return {midi:m,clef:clefFor(m),rand:true};}}
+  B.sinceRandom++;
+  let cand=remain.length>1?remain.filter(m=>m!==G.last):remain;
+  const minS=Math.min(...cand.map(m=>B.targets[m].streak));cand=cand.filter(m=>B.targets[m].streak===minS);
+  const m=cand[Math.floor(Math.random()*cand.length)];return {midi:m,clef:clefFor(m)};
+}
+function nextQuestion(){
+  if(G.mode==='normal'&&G.qIndex>=G.total)return endRound();
+  const q=G.mode==='boss'?pickBoss():pickNormal();
+  if(!q)return endRound();
+  G.q=q;G.last=q.midi;
+  renderStaff(G.L.clef,q.clef,q.midi);
+  G.tStart=performance.now();G.locked=false;updateHud();
+}
+function pointsFor(t,hint){if(hint)return{p:50,tag:'💡 +50（提示模式无速度奖励）'};if(t<=1.2)return{p:150,tag:'⚡ +150'};if(t<=3.0)return{p:100,tag:'+100 ✓'};return{p:50,tag:'+50 ✓ 再快一点'};}
+function feedback(txt,cls){const f=$('fb');f.textContent=txt;f.className='fb show '+cls;clearTimeout(f._t);f._t=setTimeout(()=>f.classList.remove('show'),650);}
+function recordAnswer(m,ok,t,clef){
+  const n=noteStat(m);n.a++;if(!ok)n.e++;n.t+=t;
+  S.answers.push({m,ok,t:+t.toFixed(3),lv:G.lv,r:G.mode==='normal'?1:0,ts:Date.now()});if(S.answers.length>400)S.answers.splice(0,S.answers.length-400);
+  const d=S.daily;if(ok&&t<=2)d.fast++;
+  if(clef==='treble'){if(ok){d.trebleStreak++;d.trebleBest=Math.max(d.trebleBest,d.trebleStreak);}else d.trebleStreak=0;}
+}
+function pressKey(m,el){
+  if(!G||G.locked)return;
+  playNote(m);
+  const q=G.q,t=(performance.now()-G.tStart)/1000;G.locked=true;
+  if(m===q.midi){
+    G.correct++;G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);S.daily.bestCombo=Math.max(S.daily.bestCombo,G.combo);
+    const {p,tag}=pointsFor(t,G.hint);let bonus=0,btxt='';
+    if(G.combo===5){bonus=50;btxt=' 🔥 5 Combo +50';}else if(G.combo===10){bonus=100;btxt=' 🔥🔥 10 Combo +100';}else if(G.combo>=20&&G.combo%10===0){bonus=200;btxt=' ⚡ PERFECT +200';}
+    G.score+=p+bonus;feedback(tag+btxt+`  ${t.toFixed(2)}s`,'ok');
+    el.classList.add('right');setTimeout(()=>el.classList.remove('right'),220);
+    if(G.boss&&(q.midi in G.boss.targets)){const tg=G.boss.targets[q.midi];tg.streak++;if(tg.streak>=3)tg.done=true;}
+  }else{
+    G.combo=0;if(!G.wrong.includes(q.midi))G.wrong.push(q.midi);
+    feedback('✗','bad');
+    el.classList.add('wrong');setTimeout(()=>el.classList.remove('wrong'),500);
+    const ce=keyEl(q.midi);if(ce){ce.classList.add('hintflash');setTimeout(()=>ce.classList.remove('hintflash'),1000);}
+    if(G.boss){if(!(q.midi in G.boss.targets))G.boss.targets[q.midi]={streak:0,done:false};else G.boss.targets[q.midi].streak=0;}
+  }
+  G.times.push(t);recordAnswer(q.midi,m===q.midi,t,q.clef);
+  if(G.mode==='normal')G.qIndex++;else G.boss.count++;
+  save();updateHud();
+  setTimeout(nextQuestion,m===q.midi?260:750);
+}
+
+/* ---------- 晋级 ---------- */
+function levelProgress(lv){
+  const L=LEVELS[lv-1],rs=S.rounds.filter(r=>r.lv===lv).slice(-10),n=rs.length;
+  const tot=rs.reduce((a,r)=>a+r.total,0),cor=rs.reduce((a,r)=>a+r.correct,0),ts=rs.reduce((a,r)=>a+r.avgT*r.total,0);
+  const acc=tot?cor/tot:0,avgT=tot?ts/tot:0,ok=n>=10&&acc>=0.98&&avgT<=L.time;
+  let prof=n?Math.round(100*(0.2*Math.min(1,n/10)+0.5*Math.min(1,acc/0.98)+0.3*(avgT?Math.min(1,L.time/avgT):0))):0;
+  if(S.cleared[lv])prof=100;
+  return {n,tot,cor,acc,avgT,ok,prof,target:L.time};
+}
+function endRound(){
+  const total=G.times.length;if(!total){showScreen('home');renderHome();return;}
+  const avgT=G.times.reduce((a,b)=>a+b,0)/total,acc=G.correct/total;
+  let levelUp=false;
+  if(G.mode==='normal'){
+    S.rounds.push({lv:G.lv,correct:G.correct,total,avgT:+avgT.toFixed(3),score:G.score,ts:Date.now()});if(S.rounds.length>300)S.rounds.splice(0,S.rounds.length-300);
+    if(G.correct===total)S.daily.perfect=true;
+    const pr=levelProgress(G.lv);
+    if(pr.ok&&!S.cleared[G.lv]){S.cleared[G.lv]=true;levelUp=true;if(G.lv<MAX_PLAYABLE){S.maxLevel=Math.max(S.maxLevel,G.lv+1);S.currentLevel=G.lv+1;}}
+  }
+  save();renderSummary(avgT,acc,levelUp);showScreen('summary');
+}
+function renderSummary(avgT,acc,levelUp){
+  const boss=G.mode==='boss';
+  $('sTitle').textContent=boss?'🎯 错题复仇结束':`Lv${G.lv} 本局结算`;
+  $('sScore').textContent=G.score+' 分';
+  $('sAcc').textContent=`${G.correct} / ${G.times.length}（${Math.round(acc*100)}%）`;
+  $('sTime').textContent=fmtT(avgT);$('sCombo').textContent=G.maxCombo+' 🔥';
+  $('sLevelUp').innerHTML=levelUp?`<div class="card levelup"><b>🎉 Lv${G.lv} 达到 ⭐⭐⭐ 熟练度！</b><br>${G.lv<MAX_PLAYABLE?`已解锁 Lv${G.lv+1}「${LEVELS[G.lv].name}」`:'第一版识谱核心课程全部通关！8–12 级将在后续版本开放。'}</div>`:'';
+  if(boss){
+    const tg=G.boss.targets,done=Object.keys(tg).filter(m=>tg[m].done),left=Object.keys(tg).filter(m=>!tg[m].done);
+    $('sProg').innerHTML=`<div class="sub">已消灭：</div>${done.map(m=>`<span class="tag">${noteName(+m)} ✓</span>`).join('')||'<span class="sub">无</span>'}`+(left.length?`<div class="sub" style="margin-top:8px">未消灭（本轮达到题数上限）：</div>${left.map(m=>`<span class="tag bad">${noteName(+m)}</span>`).join('')}`:'');
+    $('sWrong').style.display='none';
+    $('sBtns').innerHTML=`<button class="primary" data-act="again">再来一局 Lv${G.lv}</button><button data-act="home">返回主页</button>`;
+  }else{
+    const pr=levelProgress(G.lv);
+    $('sProg').innerHTML=`<div class="sub">晋级进度（最近 ${pr.n}/10 局，共 ${pr.tot} 题）</div>
+      <div style="margin-top:6px">正确率 <b style="color:${pr.acc>=0.98?'var(--ok)':'var(--bad)'}">${(pr.acc*100).toFixed(1)}%</b> <span class="sub">需 ≥ 98%</span>
+      &nbsp;·&nbsp; 平均反应 <b style="color:${pr.avgT&&pr.avgT<=pr.target?'var(--ok)':'var(--bad)'}">${fmtT(pr.avgT)}</b> <span class="sub">需 ≤ ${pr.target.toFixed(1)} s</span></div>
+      <div class="bar"><i style="width:${pr.prof}%"></i></div><div class="sub" style="margin-top:4px">熟练度 ${pr.prof}%${S.cleared[G.lv]?' · 本级已通过':''}</div>`;
+    $('sWrong').style.display='';
+    $('sWrong').innerHTML=G.wrong.length?`<div class="sub">本局错音（已加入错题本）：</div>${G.wrong.map(m=>`<span class="tag bad">${noteName(m)}</span>`).join('')}`:`<div style="color:var(--ok)">✨ 零失误！</div>`;
+    let b='';
+    if(G.wrong.length)b+=`<button class="warn" data-act="boss">🎯 Boss Battle：错题复仇</button>`;
+    b+=`<button class="${G.wrong.length?'':'primary'}" data-act="again">再来一局 Lv${G.lv}</button>`;
+    if(S.cleared[G.lv]&&G.lv<MAX_PLAYABLE)b+=`<button class="primary" data-act="next">▶ 进入 Lv${G.lv+1}</button>`;
+    b+=`<button data-act="home">返回主页</button>`;
+    $('sBtns').innerHTML=b;
+  }
+}
+$('sBtns').addEventListener('click',e=>{
+  const a=e.target.closest('button');if(!a)return;const act=a.dataset.act,lv=G.lv,wrong=G.wrong.slice();
+  if(act==='boss')startRound(lv,'boss',wrong);
+  else if(act==='again')startRound(lv);
+  else if(act==='next'){S.currentLevel=lv+1;save();startRound(lv+1);}
+  else{showScreen('home');renderHome();}
+});
+
+/* ---------- 主页 / 关卡 / 错题本 ---------- */
+function weakNotes(k){
+  return Object.keys(S.notes).map(Number).filter(m=>S.notes[m].e>0).sort((a,b)=>{const ra=errRate(a),rb=errRate(b);return rb-ra||S.notes[b].e-S.notes[a].e;}).slice(0,k);
+}
+function renderHome(){
+  ensureDaily();
+  const lv=S.currentLevel,L=LEVELS[lv-1],pr=levelProgress(lv);
+  $('hLv').textContent=lv;$('hLvName').textContent=L.name;
+  $('hStars').textContent=LEVELS.map(x=>S.cleared[x.n]?'⭐':'☆').join('');
+  $('hProf').textContent=pr.prof+'%';$('hBar').style.width=pr.prof+'%';
+  $('hProfDetail').textContent=pr.n?`最近 ${pr.n}/10 局 · 正确率 ${(pr.acc*100).toFixed(1)}% · 平均 ${fmtT(pr.avgT)}（要求 ≤ ${pr.target.toFixed(1)} s）`:`还没有记录，先来一局吧（要求 ≤ ${pr.target.toFixed(1)} s）`;
+  $('hCombo').textContent=S.daily.bestCombo+' 🔥';
+  const recent=S.answers.filter(a=>a.r).slice(-100);
+  $('hSpeed').textContent=recent.length?fmtT(recent.reduce((a,b)=>a+b.t,0)/recent.length):'—';
+  const wk=weakNotes(3);$('hWeak').textContent=wk.length?wk.map(noteName).join(' · '):'—';
+  $('hBook').textContent=Object.values(S.notes).filter(n=>n.e>0).length;
+  const d=S.daily;
+  $('hTasks').innerHTML=[
+    [`高音谱表连续正确 30 个`,Math.min(30,d.trebleBest)+' / 30',d.trebleBest>=30],
+    [`2 秒以内识别 20 个`,Math.min(20,d.fast)+' / 20',d.fast>=20],
+    [`完成一次零失误挑战`,d.perfect?'已完成':'未完成',d.perfect],
+  ].map(([t,v,ok])=>`<div class="task ${ok?'done':''}"><span>${ok?'✅':'⬜'} ${t}</span><span>${v}</span></div>`).join('');
+  // 趋势
+  const rs=S.rounds.slice(-12),sv=$('hSpark');
+  if(rs.length<2){sv.innerHTML='';$('hSparkLast').textContent='完成 2 局后显示趋势';}
+  else{const mx=Math.max(...rs.map(r=>r.avgT),0.5),n=rs.length;
+    const pts=rs.map((r,i)=>`${(i/(n-1))*290+5},${40-(r.avgT/mx)*34}`).join(' ');
+    sv.innerHTML=`<polyline points="${pts}" fill="none" stroke="#f4b942" stroke-width="2" vector-effect="non-scaling-stroke"/>`+rs.map((r,i)=>`<circle cx="${(i/(n-1))*290+5}" cy="${40-(r.avgT/mx)*34}" r="2.5" fill="#ff7a59"/>`).join('');
+    $('hSparkLast').textContent=`最近一局 ${rs[n-1].avgT.toFixed(2)} s`;}
+}
+function renderLevels(){
+  $('lvList').innerHTML=LEVELS.map(L=>{
+    const locked=L.locked||L.n>S.maxLevel,pr=locked?null:levelProgress(L.n);
+    const st=L.locked?'🔒 后续版本':locked?'🔒 未解锁':S.cleared[L.n]?'⭐⭐⭐ 已通过':`熟练度 ${pr.prof}%`;
+    return `<div class="lv ${locked?'lock':''} ${L.n===S.currentLevel?'cur':''}" data-lv="${L.n}"><div class="num">${L.n}</div><div><div class="t">${L.name} <span class="sub">${L.rng}</span></div><div class="d">${L.mech}${L.time?` · 反应要求 ≤ ${L.time.toFixed(1)} s`:''}</div></div><div class="st">${st}</div></div>`;
+  }).join('');
+}
+$('lvList').addEventListener('click',e=>{const d=e.target.closest('.lv');if(!d||d.classList.contains('lock'))return;const lv=+d.dataset.lv;S.currentLevel=lv;save();startRound(lv);});
+function renderBook(){
+  const ms=Object.keys(S.notes).map(Number).filter(m=>S.notes[m].e>0).sort((a,b)=>(S.notes[b].e/S.notes[b].a)-(S.notes[a].e/S.notes[a].a)||S.notes[b].e-S.notes[a].e);
+  if(!ms.length){$('bookBody').innerHTML='<div class="sub">暂无错题。答错的音符会自动出现在这里。</div>';$('btnWeakTrain').style.display='none';return;}
+  $('btnWeakTrain').style.display='';
+  $('bookBody').innerHTML=`<table><tr><th>音符</th><th>出现</th><th>错误</th><th>错误率</th><th>平均反应</th></tr>`+ms.map(m=>{const n=S.notes[m];return `<tr><td><b>${noteName(m)}</b></td><td>${n.a}</td><td>${n.e}</td><td class="rate">${Math.round(n.e/n.a*100)}%</td><td>${fmtT(n.t/n.a)}</td></tr>`;}).join('')+`</table>`;
+}
+$('btnWeakTrain').onclick=()=>{const wk=weakNotes(6);if(!wk.length)return;const lv=Math.min(S.currentLevel,MAX_PLAYABLE);startRound(lv,'boss',wk);};
+
+/* ---------- 导航 ---------- */
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));window.scrollTo(0,0);}
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{showScreen(b.dataset.go);if(b.dataset.go==='home')renderHome();});
+$('btnStart').onclick=()=>{unlockAudio();startRound(Math.min(S.currentLevel,MAX_PLAYABLE));};
+$('btnLevels').onclick=()=>{renderLevels();showScreen('levels');};
+$('btnBook').onclick=()=>{renderBook();showScreen('book');};
+$('btnReset').onclick=()=>{if(confirm('确定清空全部进度、统计与错题本？'))
+{localStorage.removeItem(STORE_KEY);S=load();renderHome();}};
+$('chipHint').onclick=()=>{if(!G)return;G.hint=!G.hint;applyKbFlags();};
+$('chipBlind').onclick=()=>{S.settings.blind=!S.settings.blind;save();applyKbFlags();};
+$('chipSound').onclick=()=>{S.settings.sound=!S.settings.sound;save();applyKbFlags();if(S.settings.sound)unlockAudio();else if(silentEl)silentEl.pause();};
+$('chipExit').onclick=()=>{if(G&&G.times.length&&!confirm('退出本局？本局成绩不会计入晋级。'))return;G=null;showScreen('home');renderHome();};
+
+renderHome();showScreen('home');
+</script>
+</body>
+</html>
