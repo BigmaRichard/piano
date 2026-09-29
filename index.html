@@ -216,7 +216,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 </div>
 <script>
 'use strict';
-const VERSION='1.3';
+const VERSION='1.4';
 const STORE_KEY='sra_v1';
 const WHITE_PC=[0,2,4,5,7,9,11];
 const LETTER={0:0,2:1,4:2,5:3,7:4,9:5,11:6};
@@ -376,24 +376,33 @@ function slideIn(el){
 }
 
 /* ---------- 键盘 ---------- */
+// 本级键盘范围：用到的音域两侧各留 2 个白键，Boss 模式再扩到覆盖全部错音
+function kbRangeFor(){
+  if(!G)return [KB_LO,KB_HI];
+  let [lo,hi]=levelRangeAll(G.L);
+  if(G.boss)Object.keys(G.boss.targets).forEach(m=>{lo=Math.min(lo,+m);hi=Math.max(hi,+m);});
+  const w=poolOf(KB_LO,KB_HI);const i1=Math.max(0,w.indexOf(lo)-2),i2=Math.min(w.length-1,w.indexOf(hi)+2);
+  return [w[i1],w[i2]];
+}
 function buildKeyboard(){
   const kb=$('kb'),wrap=$('kbwrap');kb.innerHTML='';
-  const whites=poolOf(KB_LO,KB_HI);
-  const cw=wrap.clientWidth-24,wW=Math.max(30,Math.floor(cw/whites.length));
-  kb.style.width=(wW*whites.length)+'px';kb.dataset.ww=wW;
+  const [lo,hi]=kbRangeFor();kb.dataset.lo=lo;kb.dataset.hi=hi;
+  const whites=poolOf(lo,hi);
+  const cw=wrap.clientWidth-24,wW=Math.min(72,Math.max(30,Math.floor(cw/whites.length)));
+  kb.style.width=(wW*whites.length)+'px';kb.dataset.ww=wW;kb.style.margin='0 auto';
   const idx={};
   whites.forEach((m,i)=>{idx[m]=i;const d=document.createElement('div');d.className='key white';d.dataset.m=m;d.dataset.pc=m%12;
     d.style.left=(i*wW)+'px';d.style.width=(wW-1)+'px';
     d.innerHTML=`<span class="lab">${noteName(m)}</span>${m===60?'<span class="mc"></span>':''}`;kb.appendChild(d);});
   const bW=Math.round(wW*0.6);
-  for(let m=KB_LO;m<=KB_HI;m++)if(!isWhite(m)){const d=document.createElement('div');d.className='key black';d.dataset.m=m;
+  for(let m=lo+1;m<hi;m++)if(!isWhite(m)){const d=document.createElement('div');d.className='key black';d.dataset.m=m;
     d.style.left=((idx[m-1]+1)*wW-bW/2)+'px';d.style.width=bW+'px';kb.appendChild(d);}
   kb.onpointerdown=e=>{const k=e.target.closest('.key');if(!k)return;e.preventDefault();k.classList.add('down');setTimeout(()=>k.classList.remove('down'),120);pressKey(+k.dataset.m,k);};
 }
 function keyEl(m){return document.querySelector(`.key[data-m="${m}"]`);}
 function scrollKeyboardTo(lo,hi){
-  const wrap=$('kbwrap'),wW=+$('kb').dataset.ww||30;
-  const whites=poolOf(KB_LO,KB_HI);const i1=whites.filter(m=>m<lo).length,i2=whites.filter(m=>m<=hi).length;
+  const kb=$('kb'),wrap=$('kbwrap'),wW=+kb.dataset.ww||30;
+  const whites=poolOf(+kb.dataset.lo||KB_LO,+kb.dataset.hi||KB_HI);const i1=whites.filter(m=>m<lo).length,i2=whites.filter(m=>m<=hi).length;
   const center=(i1+i2)/2*wW;wrap.scrollLeft=Math.max(0,center-wrap.clientWidth/2);
 }
 let resizeTimer=null;
@@ -423,7 +432,8 @@ function applyKbFlags(){
   $('chipHint').classList.toggle('on',!!(G&&G.hint));$('chipBlind').classList.toggle('on',!!S.settings.blind);
   $('chipNote').classList.toggle('on',!!S.settings.noteName);$('chipColor').classList.toggle('on',!!S.settings.colorKeys);
   $('chipSound').textContent=S.settings.sound?'🔊':'🔇';
-  $('kbtip').textContent=(S.settings.blind&&G&&G.lv>=7)?'Blind Mode：无中央 C 提示':'键盘可左右滑动 · 金点为中央 C';
+  const kbEl=$('kb'),narrowKb=kbEl.offsetWidth>$('kbwrap').clientWidth;
+  $('kbtip').textContent=(S.settings.blind&&G&&G.lv>=7)?'Blind Mode：无中央 C 提示':(narrowKb?'键盘可左右滑动 · 金点为中央 C':'金点为中央 C');
 }
 function updateHud(){
   $('gScore').textContent=G.score;
