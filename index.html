@@ -113,7 +113,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 <!-- 主页 -->
 <section id="home" class="screen"><div class="wrap">
   <h1>🎼 Sight Reading Adventure</h1>
-  <div class="sub">识谱冒险 · 看到音符，手直接找到琴键</div>
+  <div class="sub">识谱冒险 · 看到音符，手直接找到琴键 · <span id="hVer"></span></div>
   <div class="card">
     <div class="row" style="justify-content:space-between">
       <div><div class="sub">当前</div><div style="font-size:26px;font-weight:800">LEVEL <span id="hLv">1</span> <span id="hLvName" style="font-size:15px;font-weight:500;color:var(--mut)"></span></div></div>
@@ -203,6 +203,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 </div>
 <script>
 'use strict';
+const VERSION='1.1';
 const STORE_KEY='sra_v1';
 const WHITE_PC=[0,2,4,5,7,9,11];
 const LETTER={0:0,2:1,4:2,5:3,7:4,9:5,11:6};
@@ -558,6 +559,7 @@ $('chipBlind').onclick=()=>{S.settings.blind=!S.settings.blind;save();applyKbFla
 $('chipSound').onclick=()=>{S.settings.sound=!S.settings.sound;save();applyKbFlags();if(S.settings.sound)unlockAudio();else if(silentEl)silentEl.pause();};
 $('chipExit').onclick=()=>{if(G&&G.times.length&&!confirm('退出本局？本局成绩不会计入晋级。'))return;G=null;showScreen('home');renderHome();};
 
+$('hVer').textContent='ver '+VERSION;
 renderHome();showScreen('home');
 </script>
 </body>

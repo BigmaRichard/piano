@@ -1,5 +1,7 @@
 # Sight Reading Adventure · 识谱冒险
 
+当前版本：ver 1.1（每次推送 +0.1，版本号写在 `index.html` 顶部的 `VERSION` 常量，主页标题下可见）
+
 单文件网页小游戏：`index.html`，无任何依赖，双击即可在浏览器打开（手机、电脑均可）。
 
 ## 第一版（v1）包含
