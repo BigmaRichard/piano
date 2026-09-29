@@ -59,7 +59,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 .hud .score{font-weight:700;color:var(--acc)}
 .hud .combo{font-weight:700}
 .hud .combo.hot{color:var(--acc2)}
-.stage{flex:2 1 0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background:var(--paper);margin:10px 12px 6px;border-radius:16px;overflow:hidden}
+.stage{flex:2 1 0;min-height:170px;position:relative;display:flex;align-items:center;justify-content:center;background:var(--paper);margin:10px 12px 6px;border-radius:16px;overflow:hidden}
 .stage svg{width:100%;height:100%;display:block}
 .stage .sl{stroke:#333;stroke-width:1.2}
 .stage .nh{fill:var(--ink)}
@@ -81,6 +81,14 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 .key .mc{position:absolute;bottom:22px;left:50%;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:#c9a227}
 #kb.showlab .key .mc{bottom:26px}
 #kb.blind .key .mc{display:none}
+#kb.color .key.white[data-pc="0"]{background:#f7a09a}
+#kb.color .key.white[data-pc="2"]{background:#f9c48a}
+#kb.color .key.white[data-pc="4"]{background:#f7e79a}
+#kb.color .key.white[data-pc="5"]{background:#b6e8a6}
+#kb.color .key.white[data-pc="7"]{background:#9adcd0}
+#kb.color .key.white[data-pc="9"]{background:#a9bff5}
+#kb.color .key.white[data-pc="11"]{background:#d8b0f0}
+.stage .nn{font-size:13px;font-weight:700;fill:#444}
 .key.down{filter:brightness(.85)}
 .key.right{background:#8be3b8 !important}
 .key.wrong{background:#ff8a94 !important}
@@ -95,7 +103,8 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 .spark{width:100%;height:44px}
 .topbar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .topbar button{padding:8px 12px}
-@media (max-width:600px){h1{font-size:22px}.big{font-size:32px}.stage{margin:8px 8px 4px;flex:1.15 1 0}.kbwrap{padding:0 8px 8px;max-height:240px}}
+@media (max-width:600px){h1{font-size:22px}.big{font-size:32px}.stage{margin:8px 8px 4px;flex:1.15 1 0}.kbwrap{padding:0 8px 8px;max-height:240px}
+.hud{gap:6px;padding:6px 8px;font-size:13px}.hud .chip{padding:4px 8px;font-size:12px}}
 </style>
 </head>
 <body>
@@ -161,6 +170,8 @@ th{color:var(--mut);font-weight:500;font-size:12px}
     <span class="score">🏆 <span id="gScore">0</span></span>
     <span class="combo" id="gCombo">Combo ×0</span>
     <span class="chip" id="chipHint">💡 键名</span>
+    <span class="chip" id="chipNote">🎵 音名</span>
+    <span class="chip" id="chipColor">🎨 彩键</span>
     <span class="chip" id="chipBlind" style="display:none">👀 Blind</span>
     <span class="chip" id="chipSound">🔊</span>
     <span class="chip" id="chipExit">✕</span>
@@ -215,7 +226,8 @@ const LEVELS=[
 ];
 const MAX_PLAYABLE=7;
 const DEFAULT={version:1,maxLevel:1,currentLevel:1,cleared:{},rounds:[],notes:{},answers:[],
-  daily:{date:'',bestCombo:0,trebleStreak:0,trebleBest:0,fast:0,perfect:false},settings:{sound:true,blind:false}};
+  daily:{date:'',bestCombo:0,trebleStreak:0,trebleBest:0,fast:0,perfect:false},settings:{sound:true,blind:false,noteName:false,colorKeys:false}};
+const PC_COLOR={0:'#d9453a',2:'#e0852a',4:'#c9a800',5:'#3f9d3a',7:'#1f9a8a',9:'#3b63c9',11:'#8e3fbf'};
 
 /* ---------- 工具 ---------- */
 const $=id=>document.getElementById(id);
@@ -296,13 +308,16 @@ function renderStaff(mode,clef,midi){
   let g='';
   if(o<=-2)for(let k=-2;k>=o;k-=2)g+=`<line x1="${x-rx-SP*.45}" y1="${bottom-k*SP/2}" x2="${x+rx+SP*.45}" y2="${bottom-k*SP/2}" class="sl"/>`;
   if(o>=10)for(let k=10;k<=o;k+=2)g+=`<line x1="${x-rx-SP*.45}" y1="${bottom-k*SP/2}" x2="${x+rx+SP*.45}" y2="${bottom-k*SP/2}" class="sl"/>`;
-  g+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(-22 ${x} ${y})" class="nh"/>`;
+  const fill=S.settings.colorKeys?` style="fill:${PC_COLOR[midi%12]}"`:'';
+  g+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(-22 ${x} ${y})" class="nh"${fill}/>`;
+  if(S.settings.noteName)g+=`<text x="${x+rx+6}" y="${y-ry-3}" class="nn">${noteName(midi)}</text>`;
   if(o>=4)g+=`<line x1="${x-rx+1}" y1="${y+1}" x2="${x-rx+1}" y2="${y+3.4*SP}" class="stem"/>`;
   else g+=`<line x1="${x+rx-1}" y1="${y-1}" x2="${x+rx-1}" y2="${y-3.4*SP}" class="stem"/>`;
   p.push(`<g id="noteG" transform="translate(230,0)" opacity="0.3">${g}</g>`);
   svg.innerHTML=p.join('');
   slideIn($('noteG'));
 }
+function redrawCurrent(){renderStaff(G.L.clef,G.q.clef,G.q.midi);const g=$('noteG');g.setAttribute('transform','translate(0,0)');g.setAttribute('opacity',1);}
 function slideIn(el){
   const t0=performance.now(),D=220;
   (function f(t){const q=Math.min(1,(t-t0)/D),e=1-Math.pow(1-q,3);
@@ -317,7 +332,7 @@ function buildKeyboard(){
   const cw=wrap.clientWidth-24,wW=Math.max(30,Math.floor(cw/whites.length));
   kb.style.width=(wW*whites.length)+'px';kb.dataset.ww=wW;
   const idx={};
-  whites.forEach((m,i)=>{idx[m]=i;const d=document.createElement('div');d.className='key white';d.dataset.m=m;
+  whites.forEach((m,i)=>{idx[m]=i;const d=document.createElement('div');d.className='key white';d.dataset.m=m;d.dataset.pc=m%12;
     d.style.left=(i*wW)+'px';d.style.width=(wW-1)+'px';
     d.innerHTML=`<span class="lab">${noteName(m)}</span>${m===60?'<span class="mc"></span>':''}`;kb.appendChild(d);});
   const bW=Math.round(wW*0.6);
@@ -354,7 +369,9 @@ function startRound(lv,mode='normal',bossNotes=null){
 }
 function applyKbFlags(){
   const kb=$('kb');kb.classList.toggle('showlab',!!(G&&G.hint));kb.classList.toggle('blind',!!(S.settings.blind&&G&&G.lv>=7));
+  kb.classList.toggle('color',!!S.settings.colorKeys);
   $('chipHint').classList.toggle('on',!!(G&&G.hint));$('chipBlind').classList.toggle('on',!!S.settings.blind);
+  $('chipNote').classList.toggle('on',!!S.settings.noteName);$('chipColor').classList.toggle('on',!!S.settings.colorKeys);
   $('chipSound').textContent=S.settings.sound?'🔊':'🔇';
   $('kbtip').textContent=(S.settings.blind&&G&&G.lv>=7)?'Blind Mode：无中央 C 提示':'键盘可左右滑动 · 金点为中央 C';
 }
@@ -405,7 +422,7 @@ function pressKey(m,el){
   const q=G.q,t=(performance.now()-G.tStart)/1000;G.locked=true;
   if(m===q.midi){
     G.correct++;G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);S.daily.bestCombo=Math.max(S.daily.bestCombo,G.combo);
-    const {p,tag}=pointsFor(t,G.hint);let bonus=0,btxt='';
+    const {p,tag}=pointsFor(t,G.hint||S.settings.noteName||S.settings.colorKeys);let bonus=0,btxt='';
     if(G.combo===5){bonus=50;btxt=' 🔥 5 Combo +50';}else if(G.combo===10){bonus=100;btxt=' 🔥🔥 10 Combo +100';}else if(G.combo>=20&&G.combo%10===0){bonus=200;btxt=' ⚡ PERFECT +200';}
     G.score+=p+bonus;feedback(tag+btxt+`  ${t.toFixed(2)}s`,'ok');
     el.classList.add('right');setTimeout(()=>el.classList.remove('right'),220);
@@ -535,6 +552,8 @@ $('btnBook').onclick=()=>{renderBook();showScreen('book');};
 $('btnReset').onclick=()=>{if(confirm('确定清空全部进度、统计与错题本？'))
 {localStorage.removeItem(STORE_KEY);S=load();renderHome();}};
 $('chipHint').onclick=()=>{if(!G)return;G.hint=!G.hint;applyKbFlags();};
+$('chipNote').onclick=()=>{S.settings.noteName=!S.settings.noteName;save();applyKbFlags();if(G&&G.q)redrawCurrent();};
+$('chipColor').onclick=()=>{S.settings.colorKeys=!S.settings.colorKeys;save();applyKbFlags();if(G&&G.q)redrawCurrent();};
 $('chipBlind').onclick=()=>{S.settings.blind=!S.settings.blind;save();applyKbFlags();};
 $('chipSound').onclick=()=>{S.settings.sound=!S.settings.sound;save();applyKbFlags();if(S.settings.sound)unlockAudio();else if(silentEl)silentEl.pause();};
 $('chipExit').onclick=()=>{if(G&&G.times.length&&!confirm('退出本局？本局成绩不会计入晋级。'))return;G=null;showScreen('home');renderHome();};
