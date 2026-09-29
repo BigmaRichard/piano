@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Sight Reading Adventure · 识谱冒险</title>
+<meta name="theme-color" content="#0f1420">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="识谱冒险">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Music&display=swap" rel="stylesheet">
 <style>
@@ -97,6 +104,16 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 .spark{width:100%;height:44px}
 .topbar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .topbar button{padding:8px 12px}
+.fstip{display:none;align-items:center;gap:10px;padding:6px 12px;background:#2a2410;color:var(--acc);font-size:13px;border-bottom:1px solid #4a3f1a}
+.fstip.show{display:flex}
+.fstip .sp{flex:1}
+.fstip button{padding:6px 10px;font-size:13px}
+@media (orientation:landscape) and (max-height:520px){
+  .hud{padding:3px 8px;gap:6px;font-size:12px}.hud .chip{padding:3px 7px;font-size:12px}
+  .stage{margin:3px 8px 2px;min-height:110px;border-radius:10px}.prog{display:none}
+  .kbtip{display:none}.kbwrap{padding:0 8px 4px;min-height:96px;max-height:45vh}#kb{min-height:90px}
+  .fb{font-size:20px;top:4px}
+}
 @media (max-width:600px){h1{font-size:22px}.big{font-size:32px}.stage{margin:8px 8px 4px;flex:1.15 1 0}.kbwrap{padding:0 8px 8px;max-height:240px}
 .hud{gap:6px;padding:6px 8px;font-size:13px}.hud .chip{padding:4px 8px;font-size:12px}}
 </style>
@@ -168,8 +185,10 @@ th{color:var(--mut);font-weight:500;font-size:12px}
     <span class="chip" id="chipColor">🎨 彩键</span>
     <span class="chip" id="chipBlind" style="display:none">👀 Blind</span>
     <span class="chip" id="chipSound">🔊</span>
+    <span class="chip" id="chipFs" style="display:none">⛶</span>
     <span class="chip" id="chipExit">✕</span>
   </div>
+  <div class="fstip" id="fstip"><span id="fstipText"></span><span class="sp"></span><button class="primary" id="fstipBtn">⛶ 全屏</button><button class="ghost" id="fstipClose">✕</button></div>
   <div class="stage">
     <svg id="staff" viewBox="0 0 600 320" preserveAspectRatio="xMidYMid meet"></svg>
     <div class="fb" id="fb"></div>
@@ -197,7 +216,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 </div>
 <script>
 'use strict';
-const VERSION='1.2';
+const VERSION='1.3';
 const STORE_KEY='sra_v1';
 const WHITE_PC=[0,2,4,5,7,9,11];
 const LETTER={0:0,2:1,4:2,5:3,7:4,9:5,11:6};
@@ -279,6 +298,40 @@ function unlockAudio(){
 ['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockAudio,{passive:true}));
 document.addEventListener('visibilitychange',()=>{if(silentEl){if(document.hidden)silentEl.pause();else if(S.settings.sound){const p=silentEl.play();if(p&&p.catch)p.catch(()=>{});}}});
 
+/* ---------- 全屏 / 横屏 ---------- */
+const docEl=document.documentElement;
+const FS_OK=!!(docEl.requestFullscreen||docEl.webkitRequestFullscreen);
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isStandalone=()=>!!(navigator.standalone||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches);
+const inFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+function goFullscreen(){
+  if(inFs()||!FS_OK)return;
+  const p=docEl.requestFullscreen?docEl.requestFullscreen({navigationUI:'hide'}):docEl.webkitRequestFullscreen();
+  if(p&&p.then)p.then(()=>{try{screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}).catch(()=>{});
+}
+function exitFullscreen(){if(!inFs())return;(document.exitFullscreen||document.webkitExitFullscreen).call(document);}
+let fsTipDismissed=false;
+// 仅手机/平板（触摸屏）或矮窗口横屏时才提示全屏，电脑只保留顶栏 ⛶
+const wantsFs=()=>matchMedia('(orientation: landscape)').matches&&(navigator.maxTouchPoints>0||matchMedia('(max-height:520px)').matches);
+function checkLandscape(){
+  const land=wantsFs(),inGame=$('game').classList.contains('active');
+  const tip=$('fstip');
+  if(!inGame||!land||inFs()||isStandalone()||fsTipDismissed){tip.classList.remove('show');}
+  else if(FS_OK&&!isIOS){$('fstipText').textContent='横屏了，点任意琴键或此按钮进入全屏';$('fstipBtn').style.display='';tip.classList.add('show');}
+  else{$('fstipText').textContent='iPhone 浏览器不支持网页全屏：用 Safari「分享 → 添加到主屏幕」，从桌面图标打开即可无边框全屏';$('fstipBtn').style.display='none';tip.classList.add('show');}
+  $('chipFs').style.display=(FS_OK&&!isIOS&&!isStandalone())?'':'none';$('chipFs').textContent=inFs()?'⤡':'⛶';
+}
+matchMedia('(orientation: landscape)').addEventListener('change',()=>setTimeout(checkLandscape,150));
+window.addEventListener('resize',()=>setTimeout(checkLandscape,150));
+document.addEventListener('fullscreenchange',checkLandscape);document.addEventListener('webkitfullscreenchange',checkLandscape);
+// 横屏且在游戏中：第一次触摸/点击即自动进入全屏（浏览器要求必须在用户手势里）
+['touchend','click'].forEach(ev=>document.addEventListener(ev,()=>{
+  if(FS_OK&&!isIOS&&!inFs()&&!fsTipDismissed&&$('game').classList.contains('active')&&wantsFs())goFullscreen();
+},{passive:true}));
+$('fstipBtn').onclick=goFullscreen;
+$('fstipClose').onclick=e=>{e.stopPropagation();fsTipDismissed=true;checkLandscape();};
+$('chipFs').onclick=()=>{inFs()?exitFullscreen():goFullscreen();};
+
 /* ---------- 五线谱 ---------- */
 function renderStaff(mode,clef,midi){
   const svg=$('staff'),narrow=window.innerWidth<600,W=narrow?440:600,NX=narrow?330:400;
@@ -359,7 +412,7 @@ function startRound(lv,mode='normal',bossNotes=null){
   $('gLv').textContent=`Lv${lv} ${L.name}`;
   $('gMode').textContent=mode==='boss'?'🎯 Boss Battle · 错题复仇：每个错音连续答对 3 次':`本级要求：正确率 ≥ 98%，平均反应 ≤ ${L.time.toFixed(1)} s`;
   $('chipBlind').style.display=lv>=7?'':'none';
-  showScreen('game');
+  showScreen('game');checkLandscape();
   buildKeyboard();applyKbFlags();
   const [lo,hi]=levelRangeAll(L);scrollKeyboardTo(lo,hi);
   updateHud();nextQuestion();
@@ -553,7 +606,7 @@ $('chipNote').onclick=()=>{S.settings.noteName=!S.settings.noteName;save();apply
 $('chipColor').onclick=()=>{S.settings.colorKeys=!S.settings.colorKeys;save();applyKbFlags();};
 $('chipBlind').onclick=()=>{S.settings.blind=!S.settings.blind;save();applyKbFlags();};
 $('chipSound').onclick=()=>{S.settings.sound=!S.settings.sound;save();applyKbFlags();if(S.settings.sound)unlockAudio();else if(silentEl)silentEl.pause();};
-$('chipExit').onclick=()=>{if(G&&G.times.length&&!confirm('退出本局？本局成绩不会计入晋级。'))return;G=null;showScreen('home');renderHome();};
+$('chipExit').onclick=()=>{if(G&&G.times.length&&!confirm('退出本局？本局成绩不会计入晋级。'))return;G=null;showScreen('home');renderHome();checkLandscape();};
 
 $('hVer').textContent='ver '+VERSION;
 renderHome();showScreen('home');
