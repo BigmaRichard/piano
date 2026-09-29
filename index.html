@@ -66,7 +66,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 .hud .score{font-weight:700;color:var(--acc)}
 .hud .combo{font-weight:700}
 .hud .combo.hot{color:var(--acc2)}
-.stage{flex:2 1 0;min-height:170px;position:relative;display:flex;align-items:center;justify-content:center;background:var(--paper);margin:10px 12px 6px;border-radius:16px;overflow:hidden}
+.stage{flex:1.1 1 0;min-height:150px;position:relative;display:flex;align-items:center;justify-content:center;background:var(--paper);margin:10px 12px 6px;border-radius:16px;overflow:hidden}
 .stage svg{width:100%;height:100%;display:block}
 .stage .sl{stroke:#333;stroke-width:1.2}
 .stage .nh{fill:var(--ink)}
@@ -78,7 +78,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 .fb.show{opacity:1;transform:translateY(0)}
 .fb.ok{color:#1e9e63}.fb.bad{color:#d33}
 .prog{position:absolute;left:12px;bottom:8px;font-size:12px;color:#888}
-.kbwrap{flex:1 1 0;min-height:130px;max-height:260px;overflow-x:auto;overflow-y:hidden;padding:0 12px 12px;touch-action:pan-x}
+.kbwrap{flex:1 1 0;min-height:150px;max-height:46vh;overflow-x:auto;overflow-y:hidden;padding:0 12px 12px;touch-action:pan-x}
 #kb{position:relative;height:100%;min-height:118px;user-select:none}
 .key{position:absolute;top:0;border-radius:0 0 6px 6px;cursor:pointer}
 .key.white{height:100%;background:#f7f5ef;border:1px solid #bbb;z-index:1}
@@ -110,11 +110,11 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 .fstip button{padding:6px 10px;font-size:13px}
 @media (orientation:landscape) and (max-height:520px){
   .hud{padding:3px 8px;gap:6px;font-size:12px}.hud .chip{padding:3px 7px;font-size:12px}
-  .stage{margin:3px 8px 2px;min-height:110px;border-radius:10px}.prog{display:none}
-  .kbtip{display:none}.kbwrap{padding:0 8px 4px;min-height:96px;max-height:45vh}#kb{min-height:90px}
+  .stage{margin:3px 8px 2px;min-height:100px;border-radius:10px;flex:1 1 0}.prog{display:none}
+  .kbtip{display:none}.kbwrap{padding:0 8px 4px;min-height:110px;max-height:56vh;flex:1.15 1 0}#kb{min-height:100px}
   .fb{font-size:20px;top:4px}
 }
-@media (max-width:600px){h1{font-size:22px}.big{font-size:32px}.stage{margin:8px 8px 4px;flex:1.15 1 0}.kbwrap{padding:0 8px 8px;max-height:240px}
+@media (max-width:600px){h1{font-size:22px}.big{font-size:32px}.stage{margin:8px 8px 4px;flex:1 1 0}.kbwrap{padding:0 8px 8px;max-height:42vh}
 .hud{gap:6px;padding:6px 8px;font-size:13px}.hud .chip{padding:4px 8px;font-size:12px}}
 </style>
 </head>
@@ -216,7 +216,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}
 </div>
 <script>
 'use strict';
-const VERSION='1.5';
+const VERSION='1.6';
 const STORE_KEY='sra_v1';
 const WHITE_PC=[0,2,4,5,7,9,11];
 const LETTER={0:0,2:1,4:2,5:3,7:4,9:5,11:6};
